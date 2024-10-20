@@ -46,7 +46,9 @@ export function LandingPageComponent() {
 
     return (
         <div
-            className={`flex flex-col min-h-screen ${isDarkMode ? "dark" : ""}`}
+            className={`flex flex-col min-h-screen ${
+                isDarkMode ? "dark" : "e"
+            }`}
         >
             <main className="flex-grow">
                 <HeroSection onGetStarted={handleGetStarted} />
