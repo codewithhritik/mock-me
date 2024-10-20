@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,15 +19,57 @@ import { Upload } from "lucide-react";
 export function InterviewSetupFormComponent() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        jobDescription: "",
+        resume: null as File | null,
+        additionalPrompt: "",
+    });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleInputChange = (
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData((prev) => ({ ...prev, resume: e.target.files![0] }));
+        }
+    };
+
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // Here you would typically send the form data to your backend
-        // For now, we'll just simulate a delay before redirecting
-        setTimeout(() => {
-            router.push("/interview");
-        }, 1000);
+
+        const data = new FormData();
+        data.append("jobDescription", formData.jobDescription);
+        if (formData.resume) {
+            data.append("resume", formData.resume);
+        }
+        data.append("additionalPrompt", formData.additionalPrompt);
+
+        try {
+            // Update this
+            const response = await fetch("/api/interview-setup", {
+                method: "POST",
+                body: data,
+            });
+
+            if (response.ok) {
+                // Update this too
+                const result = await response.json();
+                // Assuming the API returns an interview ID or session token
+                router.push(`/interview?id=${result.interviewId}`);
+            } else {
+                // Handle error
+                console.error("Failed to set up interview");
+                setIsLoading(false);
+            }
+        } catch (error) {
+            console.error("Error setting up interview:", error);
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -41,10 +83,14 @@ export function InterviewSetupFormComponent() {
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="job-description">Job Description</Label>
+                        <Label htmlFor="jobDescription">Job Description</Label>
                         <Textarea
-                            id="job-description"
+                            id="jobDescription"
+                            name="jobDescription"
                             placeholder="Paste the job description here"
+                            value={formData.jobDescription}
+                            onChange={handleInputChange}
+                            required
                         />
                     </div>
                     <div className="space-y-2">
@@ -52,9 +98,12 @@ export function InterviewSetupFormComponent() {
                         <div className="flex items-center space-x-2">
                             <Input
                                 id="resume"
+                                name="resume"
                                 type="file"
-                                accept=".pdf"
+                                accept=".pdf,.doc,.docx"
                                 className="flex-grow"
+                                onChange={handleFileChange}
+                                required
                             />
                             <Button
                                 type="button"
@@ -66,12 +115,15 @@ export function InterviewSetupFormComponent() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="additional-prompt">
+                        <Label htmlFor="additionalPrompt">
                             Additional Prompt (Optional)
                         </Label>
                         <Textarea
-                            id="additional-prompt"
+                            id="additionalPrompt"
+                            name="additionalPrompt"
                             placeholder="Any additional information or specific areas to focus on"
+                            value={formData.additionalPrompt}
+                            onChange={handleInputChange}
                         />
                     </div>
                 </CardContent>
